@@ -248,7 +248,7 @@ for (i in 1:length(tmp)) {
 
 ## Step 6: Set Up Table for Additional Rules
 
-Function to make a table of infomation for application of additional rules. Requires file "Theoretical Distributions.csv" to be in the working directory. This is applied only to the spectra identified in Step 5. 
+Function to make a table of infomation for application of additional rules. Requires file "Theoretical Distributions.csv" to be in the working directory. To save time, this is only applied to the spectra identified in Step 5. 
 
 ```{r Additional rule functions}
 
@@ -481,7 +481,7 @@ for (i in 1:length(tmp)) {
 
 ## Step 7 Apply Additional Rules for Final Results
 
-Subset the table based on the additonal rules. Produces one subsetted table with the spectra and chromatographic information (Code to make subsetted table with fragment ion information is commented out.)
+Function to subset the table based on the additonal rules. Produces one subsetted table with the final set of halogenated spectra and associated chromatographic information.
 
 ```{r Function to apply additional rules}
 SubsetTables <- function(inputFile, chromaTOF_file, sampleName, outputFile) {
@@ -506,19 +506,16 @@ SubsetTables <- function(inputFile, chromaTOF_file, sampleName, outputFile) {
   chromaTOF_table$SpectrumFilename <- paste("Spectrum", chromaTOF_table$PeakNumber)
   chromaTOF_table$Sample <- sampleName
   
-  # Write full table of results (all halogenated fragments).
-  # result <- merge(x, chromaTOF_table, by = c('Sample', 'SpectrumFilename'))
-  # write.csv(result, file = 'S04 1 MMCP 2 Fragment Table.csv', row.names = FALSE)
-  
   # Write table of only spectra passing the additional filters.
   tmp <- x[, c('Sample', 'SpectrumFilename')]
   tmp <- tmp[!duplicated(tmp), ]
   result2 <- merge(tmp, chromaTOF_table, by = c('Sample', 'SpectrumFilename'))
   
   write.csv(result2, file = outputFile, row.names = FALSE)
-  
 }
 ```
+
+Function call to make table of final results.
 
 ```{r Apply additional rules}
 tmp <- dir("Step 6 Additional Rules")
