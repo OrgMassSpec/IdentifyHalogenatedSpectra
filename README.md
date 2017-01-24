@@ -9,4 +9,4 @@ To run the example, download the contents of the Example R Notebook folder and s
 
 ## R Script
 
-The R script file to be used for processing mass spectra is Identify Halogenation Script.R located at the top level of the repository.
+The R script to be used for processing mass spectra is Identify Halogenation Script.R located at the top level of the repository.
