@@ -1,0 +1,4 @@
+"SpectrumFilename","Halogenated","PeakNumber","RetentionTime1D_s","RetentionTime2D_s","SignalNoise","Area","QuantMasses","Sample"
+"Spectrum 1",TRUE,1,1348.57,1.076,171.81,80384,251,"Sample 2"
+"Spectrum 2",FALSE,2,1383.55,1.888,69.372,82356,75,"Sample 2"
+"Spectrum 3",TRUE,3,1541.58,1.653,344.12,123714,243,"Sample 2"

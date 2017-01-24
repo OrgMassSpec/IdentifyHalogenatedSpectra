@@ -1,0 +1,3 @@
+"Sample","SpectrumFilename","PeakNumber","RetentionTime1D_s","RetentionTime2D_s","SignalNoise","Area","QuantMasses"
+"Sample 1","Spectrum 2",2,1352.07,1.003,818.71,695335,409
+"Sample 1","Spectrum 3",3,1410.71,0.944,124.41,47682,219

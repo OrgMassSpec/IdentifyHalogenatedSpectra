@@ -1,0 +1,6 @@
+"Expt_mz","Expt_Intenstiy","Expt_PercentIntensity","HalogenationFilter","Theory_Intensity","Theory_PercentIntensity","DistributionLabel","SimilarityScore","Noise","ID","Spectrum","Sample","SpectrumFilename"
+210,188,18.8188188188188,TRUE,6588,100,"Cl1",0.977930447215679,81,1,"Step 4 MSP to CSV/Sample 2 Spectra/Spectrum 1.csv","Sample 2","Spectrum 1"
+246,999,100,TRUE,5106,100,"Cl2",0.994547402567753,0,2,"Step 4 MSP to CSV/Sample 2 Spectra/Spectrum 1.csv","Sample 2","Spectrum 1"
+318,252,25.2252252252252,TRUE,3330,100,"Br3",0.976319270821913,75,3,"Step 4 MSP to CSV/Sample 2 Spectra/Spectrum 1.csv","Sample 2","Spectrum 1"
+163,286,28.6286286286286,TRUE,3536,100,"Cl5",0.868339203776088,71,1,"Step 4 MSP to CSV/Sample 2 Spectra/Spectrum 3.csv","Sample 2","Spectrum 3"
+326,128,12.8128128128128,TRUE,3536,100,"Cl5",0.984513344584728,87,2,"Step 4 MSP to CSV/Sample 2 Spectra/Spectrum 3.csv","Sample 2","Spectrum 3"
