@@ -49,13 +49,13 @@ dir.create("Step 7 Final Results", showWarnings = FALSE)
 
 For each sample, one file in the NIST MSP format containing all spectra. The file name is meaningful and should match the file name for the corresponding CSV file described below. The compound name for each spectrum (the NAME: field in the MSP formatted spectrum) is not used and does not need to be meaningful. (The workflow assumes spectra do not have assigned compound structures at this point.) 
 
-See the folder "Step 1 Input Spectra"" for examples. For instructions on how to generate this file within ChromaTOF, see the [PDF](https://github.com/OrgMassSpec/IdentifyHalogenatedSpectra/blob/master/ExportMSPChromaTOF.pdf).
+See the folder "Step 1 Input Spectra"" for examples. For instructions on how to generate this file within ChromaTOF, see the [PDF](https://github.com/OrgMassSpec/IdentifyHalogenatedSpectra/blob/master/Example%20R%20Notebook/ExportMSPChromaTOF.pdf).
 
 ## Step 2: Add Input Peak Tables
 
 For each sample, a table in CSV format containing the chromatographic peak number, retention times, and other optional information for each spectrum. The order of spectra in the CSV table must correspond to the order of the spectra in the MSP file, since this information will be linked together based on the order. The file name should also match that for the corresponding MSP file. 
 
-See the folder "Step 2 Input Tables" for examples. For instructions on how to generate this file within ChromaTOF, see the [PDF](https://github.com/OrgMassSpec/IdentifyHalogenatedSpectra/blob/master/ExportCSVChromaTOF.pdf).
+See the folder "Step 2 Input Tables" for examples. For instructions on how to generate this file within ChromaTOF, see the [PDF](https://github.com/OrgMassSpec/IdentifyHalogenatedSpectra/blob/master/Example%20R%20Notebook/ExportCSVChromaTOF.pdf).
 
 ## Step 3: Split MSP Files
 
