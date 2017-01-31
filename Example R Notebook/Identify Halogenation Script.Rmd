@@ -1,9 +1,8 @@
 ---
 title: "Identify Brominated and/or Chlorinated Halogenation in Unit Resolution Mass Spectra"
-author: "Nathan Dodder, Jennifer Cossaboon, and Eunha Hoh"
+author: "Nathan Dodder, Jennifer Cossaboon, and Eunha Hoh. Graduate School of Public Health, San Diego State University."
 output: 
   html_notebook: 
-    code_folding: hide
     number_sections: no
     toc: yes
 ---
