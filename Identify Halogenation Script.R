@@ -1,9 +1,6 @@
-# title: "Identify Brominated and/or Chlorinated Halogenation in Unit Resolution Mass Spectra"
-# authors: "Nathan Dodder, Jennifer Cossaboon, and Eunha Hoh"
-
 ## ----Setup---------------------------------------------------------------
 rm(list = ls())
-library(OrgMassSpecR)
+library(OrgMassSpecR) # The OrgMassSpecR version must be >= 0.5-1.
 
 ## ----Directory Structure-------------------------------------------------
 dir.create("Step 1 Input Spectra", showWarnings = FALSE)
