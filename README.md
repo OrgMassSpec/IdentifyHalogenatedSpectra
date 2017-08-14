@@ -1,12 +1,14 @@
 # IdentifyHalogenatedSpectra
 Identify halogenated (Br/Cl) unit resolution mass spectra.
 
-## Documented Example
-
-For an R Notebook containing a documented example, see: http://orgmassspec.github.io/IdentifyHalogenationScript.html
-
-To run the example, download the contents of the Example R Notebook folder and see Identify Halogenation Script.Rmd to begin.
-
 ## R Script
 
-The R script for processing mass spectra is Identify Halogenation Script.R located at the top level of the repository. The script requires Theoretical Distributions.csv in the working directory.
+The script for identifying mass spectra containing bromine and/or chlorine is __IdentifyHalogenationScript.R__ located at the top level of the repository. The script requires Theoretical Distributions.csv in the working directory.
+
+## Documented Example
+
+An R Notebook containing a documented example is at: http://orgmassspec.github.io/IdentifyHalogenationScript.html
+
+To run the example, download the contents of the Example R Notebook folder and run IdentifyHalogenationScript.Rmd.
+
+

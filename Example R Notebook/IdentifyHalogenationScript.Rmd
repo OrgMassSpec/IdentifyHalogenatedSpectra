@@ -3,10 +3,8 @@ title: Identify Brominated and/or Chlorinated Halogenation in Unit Resolution Ma
   Spectra
 author: Nathan Dodder, Jennifer Cossaboon, and Eunha Hoh. Graduate School of Public
   Health, San Diego State University.
+date: 2017-08-14
 output:
-  html_notebook:
-    number_sections: no
-    toc: yes
   html_document:
     toc: yes
 ---
@@ -20,7 +18,7 @@ Given spectra from a set of samples, this script identifies the mass spectra con
 
 The script was created as part of a non-targeted analysis workflow to identify halogenated organic contaminants in environmental samples. For example, tissue samples were analyzed by GCxGC-TOF and the instrument software was used to deconvolute the data and generate the MSP and CSV files described below. These files have a large majority of non-halogneated spectra and a minority of halogenated spectra. The files were processed by the script to automatically identify the halogenated spectra. Chemical structures were then assigned by seaches against mass spectral libraries and manually reviewed using the instrument's software. 
 
-The core of the identification (Step 5 below) is performed by the isotope ratio filter originally described in Pena-Abaurrea M., et al. Identification of potential novel bioaccumulative and persistent chemicals in sediments from Ontario (Canada) using scripting approaches with GC×GC-TOF MS analysis. Environ. Sci. Technol. 2014; 48: 9591-9599. Per our use-case, we have re-written the rules in R, added additional filter rules, and added the code to process the input files as a batch. 
+The core of the identification (Step 5 below) is performed by the isotope ratio filter originally described in Pena-Abaurrea M., et al. _Identification of potential novel bioaccumulative and persistent chemicals in sediments from Ontario (Canada) using scripting approaches with GCxGC-TOF MS analysis._ Environ. Sci. Technol. 2014; 48: 9591-9599. Per our use-case, we have re-written the rules in R, added additional filter rules, and added the code to process the input files as a batch. 
 
 The input data types are MSP files containing the mass spectra and CSV files containing ancillary information, see below for more details. Both are exported by the LECO ChromaTOF software. The final output of the script is a set of CSV files, one for each sample, listing the spectra that are halogenated. 
 
@@ -30,6 +28,8 @@ The analysis runs in steps in order to troubleshoot problems, and because situat
 
 ```{r Setup}
 rm(list = ls())
+library(knitr)
+opts_chunk$set(tidy = FALSE, comment = NA)
 library(OrgMassSpecR) # The OrgMassSpecR version must be >= 0.5-1.
 ```
 
@@ -38,6 +38,7 @@ library(OrgMassSpecR) # The OrgMassSpecR version must be >= 0.5-1.
 If they do not exist, create the following directories within the working directory. 
 
 ```{r Directory Structure}
+cat("* Creating directory structure as needed...")
 dir.create("Step 1 Input Spectra", showWarnings = FALSE)
 dir.create("Step 2 Input Tables", showWarnings = FALSE)
 dir.create("Step 3 Split MSP Files", showWarnings = FALSE)
@@ -45,6 +46,7 @@ dir.create("Step 4 MSP to CSV", showWarnings = FALSE)
 dir.create("Step 5 Halogenation Filter", showWarnings = FALSE)
 dir.create("Step 6 Additional Rules", showWarnings = FALSE)
 dir.create("Step 7 Final Results", showWarnings = FALSE)
+cat("OK\n")
 ```
 
 # Prepare Spectra
@@ -60,6 +62,28 @@ See the folder "Step 1 Input Spectra"" for examples. For instructions on how to 
 For each sample, a table in CSV format containing the chromatographic peak number, retention times, and other optional information for each spectrum. The order of spectra in the CSV table must correspond to the order of the spectra in the MSP file, since this information will be linked together based on the order. The file name should also match that for the corresponding MSP file. 
 
 See the folder "Step 2 Input Tables" for examples. For instructions on how to generate this file within ChromaTOF, see the [PDF](https://github.com/OrgMassSpec/IdentifyHalogenatedSpectra/blob/master/Example%20R%20Notebook/ExportCSVChromaTOF.pdf).
+
+```{r Check Files}
+cat("* Checking for presence of Theoretical Distributions.csv...")
+if(file.exists("Theoretical Distributions.csv")) {
+  cat("OK\n") } else {
+    cat("ERROR\n")
+    stop("Working directory must contain the file Theoretical Distributions.csv")
+}
+
+# Check input spectra and input tables have the same name.
+cat("* Checking if input spectra and input tables have the same name...")
+step1Files <- sort(sub(".txt", "", list.files("Step 1 Input Spectra")))
+step2Files <- sort(sub(".csv", "", list.files("Step 2 Input Tables")))
+if(all(step1Files == step2Files)) {
+  cat("OK\n") } else {
+  cat("ERROR\n")
+    stop("Input spectra (*.txt) in Step 1 folder and input 
+       tables (*.csv) in Step 2 folder must have the same names.
+       Recommend manually deleting folders for Steps 3-7 before re-running.") 
+  }
+```
+
 
 ## Step 3: Split MSP Files
 
@@ -101,6 +125,7 @@ SplitMSP <- function(originFileName, outputFolderName) {
 Function call to split the spectra and report progress.
 
 ```{r Split spectra}
+cat("* Beginning Step 3...\n")
 tmp <- list.files("Step 1 Input Spectra", full.names = TRUE)
 
 for (i in 1:length(tmp)) {
@@ -135,6 +160,7 @@ ConvertMSP <- function(file) {
 Function call to create the CSV files.
 
 ```{r Convert MSP to CSV}
+cat("* Beginning Step 4...\n")
 tmp <- list.dirs("Step 3 Split MSP Files", recursive = FALSE)
 
 for (i in 1:length(tmp)) {
@@ -240,6 +266,7 @@ ProcessHalogenationSearch <- function(spectraDirectory, inputTableName, sampleNa
 Function call to apply the halogenation filter and report the progress.
 
 ```{r Apply filter}
+cat("* Beginning Step 5...\n")
 tmp <- dir("Step 4 MSP to CSV") # "Sample 1 Spectra" "Sample 2 Spectra"
 for (i in 1:length(tmp)) {
   sn <- sub(" Spectra", "", x = tmp[i], fixed = TRUE)
@@ -473,6 +500,7 @@ ProcessTableReports <- function(spectraDirectory, inputTableName, sampleName, ou
 Function call to make tables and report progress. 
 
 ```{r Apply functions to make additional rule tables}
+cat("* Beginning Step 6...\n")
 tmp <- dir("Step 4 MSP to CSV") # "Sample 1 Spectra" "Sample 2 Spectra"
 for (i in 1:length(tmp)) {
   sn <- sub(" Spectra", "", x = tmp[i], fixed = TRUE)
@@ -528,6 +556,7 @@ SubsetTables <- function(inputFile, chromaTOF_file, sampleName, outputFile) {
 Function call to make table of final results.
 
 ```{r Apply additional rules}
+cat("* Beginning Step 7...\n")
 tmp <- dir("Step 6 Additional Rules")
 for (i in 1:length(tmp)) {
   sn1 <- sub("Step 6 ", "", x = tmp[i], fixed = TRUE)
@@ -537,6 +566,8 @@ for (i in 1:length(tmp)) {
                       sampleName = sn2,
                       outputFile = paste("Step 7 Final Results/Step 7 ", sn2, ".csv", sep = ""))
 }
-
-# purl("Identify Halogenation Script.Rmd") # To extract code.
+cat("* Processing complete.")
+# To extract code:
+# library(knitr)
+# purl("IdentifyHalogenationScript.Rmd") 
 ```

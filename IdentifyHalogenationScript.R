@@ -3,6 +3,7 @@ rm(list = ls())
 library(OrgMassSpecR) # The OrgMassSpecR version must be >= 0.5-1.
 
 ## ----Directory Structure-------------------------------------------------
+cat("* Creating directory structure as needed...")
 dir.create("Step 1 Input Spectra", showWarnings = FALSE)
 dir.create("Step 2 Input Tables", showWarnings = FALSE)
 dir.create("Step 3 Split MSP Files", showWarnings = FALSE)
@@ -10,6 +11,27 @@ dir.create("Step 4 MSP to CSV", showWarnings = FALSE)
 dir.create("Step 5 Halogenation Filter", showWarnings = FALSE)
 dir.create("Step 6 Additional Rules", showWarnings = FALSE)
 dir.create("Step 7 Final Results", showWarnings = FALSE)
+cat("OK\n")
+
+## ----Check Files---------------------------------------------------------
+cat("* Checking for presence of Theoretical Distributions.csv...")
+if(file.exists("Theoretical Distributions.csv")) {
+  cat("OK\n") } else {
+    cat("ERROR\n")
+    stop("Working directory must contain the file Theoretical Distributions.csv")
+}
+
+# Check input spectra and input tables have the same name.
+cat("* Checking if input spectra and input tables have the same name...")
+step1Files <- sort(sub(".txt", "", list.files("Step 1 Input Spectra")))
+step2Files <- sort(sub(".csv", "", list.files("Step 2 Input Tables")))
+if(all(step1Files == step2Files)) {
+  cat("OK\n") } else {
+  cat("ERROR\n")
+    stop("Input spectra (*.txt) in Step 1 folder and input 
+       tables (*.csv) in Step 2 folder must have the same names.
+       Recommend manually deleting folders for Steps 3-7 before re-running.") 
+  }
 
 ## ----Function to split MSP spectra---------------------------------------
 SplitMSP <- function(originFileName, outputFolderName) {
@@ -44,6 +66,7 @@ SplitMSP <- function(originFileName, outputFolderName) {
 }
 
 ## ----Split spectra-------------------------------------------------------
+cat("* Beginning Step 3...\n")
 tmp <- list.files("Step 1 Input Spectra", full.names = TRUE)
 
 for (i in 1:length(tmp)) {
@@ -70,6 +93,7 @@ ConvertMSP <- function(file) {
 }
 
 ## ----Convert MSP to CSV--------------------------------------------------
+cat("* Beginning Step 4...\n")
 tmp <- list.dirs("Step 3 Split MSP Files", recursive = FALSE)
 
 for (i in 1:length(tmp)) {
@@ -165,6 +189,7 @@ ProcessHalogenationSearch <- function(spectraDirectory, inputTableName, sampleNa
 }
 
 ## ----Apply filter--------------------------------------------------------
+cat("* Beginning Step 5...\n")
 tmp <- dir("Step 4 MSP to CSV") # "Sample 1 Spectra" "Sample 2 Spectra"
 for (i in 1:length(tmp)) {
   sn <- sub(" Spectra", "", x = tmp[i], fixed = TRUE)
@@ -390,6 +415,7 @@ ProcessTableReports <- function(spectraDirectory, inputTableName, sampleName, ou
 }
 
 ## ----Apply functions to make additional rule tables----------------------
+cat("* Beginning Step 6...\n")
 tmp <- dir("Step 4 MSP to CSV") # "Sample 1 Spectra" "Sample 2 Spectra"
 for (i in 1:length(tmp)) {
   sn <- sub(" Spectra", "", x = tmp[i], fixed = TRUE)
@@ -433,6 +459,7 @@ SubsetTables <- function(inputFile, chromaTOF_file, sampleName, outputFile) {
 }
 
 ## ----Apply additional rules----------------------------------------------
+cat("* Beginning Step 7...\n")
 tmp <- dir("Step 6 Additional Rules")
 for (i in 1:length(tmp)) {
   sn1 <- sub("Step 6 ", "", x = tmp[i], fixed = TRUE)
@@ -442,6 +469,8 @@ for (i in 1:length(tmp)) {
                       sampleName = sn2,
                       outputFile = paste("Step 7 Final Results/Step 7 ", sn2, ".csv", sep = ""))
 }
-
-# purl("Identify Halogenation Script.Rmd") # To extract code.
+cat("* Processing complete.")
+# To extract code:
+# library(knitr)
+# purl("Identify_Halogenation_Script.Rmd") 
 
