@@ -3,7 +3,7 @@ title: Identify Brominated and/or Chlorinated Halogenation in Unit Resolution Ma
   Spectra
 author: Nathan Dodder, Jennifer Cossaboon, and Eunha Hoh. Graduate School of Public
   Health, San Diego State University.
-date: 2017-08-14
+date: 2023-04-03
 output:
   html_document:
     toc: yes
@@ -24,7 +24,7 @@ The input data types are MSP files containing the mass spectra and CSV files con
 
 This R Notebook documents the script and runs a small example of two samples, each containing three spectra. For large data sets, it is recommended to use Identify Halogenated Script.R, which can more conveniently report status information to the console while running. 
 
-The analysis runs in steps in order to troubleshoot problems, and because situations may require re-running only certain portions of code. Each step holds files within a defined directory structure, which will be automatically created within the working directory.
+The analysis runs in steps in order to troubleshoot problems because situations may require re-running only certain portions of code. Each step holds files within a defined directory structure, which will be automatically created within the working directory.
 
 ```{r Setup}
 rm(list = ls())
@@ -513,7 +513,7 @@ for (i in 1:length(tmp)) {
 
 ## Step 7: Apply Additional Rules for Final Results
 
-Function to subset the table based on the additonal rules. Produces one subsetted table with the final set of halogenated spectra and associated chromatographic information. The additional rules are:
+Function to subset the table based on the additional rules. Produces one subsetted table with the final set of halogenated spectra and associated chromatographic information. The additional rules are:
 
 1. The matching theoretical distribution cannot be Cl1. This distribution frequently matches noise, and compounds containing only one Cl are not commonly observed in our samples.
 2. The similarity score of the best theoretical distribution match must be > 0.85.
