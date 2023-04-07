@@ -5,54 +5,12 @@ rm(list = ls())
 # library(OrgMassSpecR) # The OrgMassSpecR version must be >= 0.5-1.
 
 # Make directory structure including each step
-cat("* Creating directory structure as needed...")
-dir.create("Step 1 Input Spectra", showWarnings = FALSE)
-dir.create("Step 2 Input Tables", showWarnings = FALSE)
-dir.create("Step 3 Split MSP Files", showWarnings = FALSE)
-dir.create("Step 4 MSP to CSV", showWarnings = FALSE)
-cat("OK\n")
-
-# Check if input spectra and input tables have the same name.
-# cat("* Checking if input spectra and input tables have the same name...")
-# step1Files <- sort(sub(".txt", "", list.files("Step 1 Input Spectra")))
-# step2Files <- sort(sub(".csv", "", list.files("Step 2 Input Tables")))
-# if(all(step1Files == step2Files)) {
-#   cat("OK\n") } else {
-#   cat("ERROR\n")
-#     stop("Input spectra (*.txt) in Step 1 folder and input 
-#        tables (*.csv) in Step 2 folder must have the same names.
-#        Recommend manually deleting folders for Steps 3-7 before re-running.") 
-#   }
-
-# ReadMspFile <- function(file, skip = 2, comment.char = "", remove.placeholders = TRUE) {
-# 
-#   msp <- read.table(file = file, sep = ";", skip = skip, fill = TRUE, 
-#                     stringsAsFactors = FALSE, comment.char = comment.char)
-# 
-#   msp <- msp[-ncol(msp)]
-# 
-#   # make tall
-#   values <- NULL
-#   for (i in 1:ncol(msp)) {
-#     values <- c(values, msp[, i])
-#   }
-#   tall.format <- as.vector(values, mode = "character")
-# 
-#   RemoveWhite <- function(x) {
-#     y <- strsplit(x, split = "[[:space:]]")[[1]]
-#     z <- y[y != ""]
-#     return(as.numeric(z))
-#   }
-#   results.list <- lapply(tall.format, RemoveWhite)
-# 
-#   result <- as.data.frame(do.call("rbind", results.list))
-#   names(result) <- c("mz", "intensity")
-#   if(remove.placeholders == TRUE) result <- result[result$intensity != 0, ]
-#   ordered.result <- result[order(result$mz), ]
-#   row.names(ordered.result) <- 1:nrow(ordered.result)
-#   return(ordered.result)
-#   
-# }
+# cat("* Creating directory structure as needed...")
+# dir.create("Step 1 Input Spectra", showWarnings = FALSE)
+# dir.create("Step 2 Input Tables", showWarnings = FALSE)
+# dir.create("Step 3 Split MSP Files", showWarnings = FALSE)
+# dir.create("Step 4 MSP to CSV", showWarnings = FALSE)
+# cat("OK\n")
 
 # Split MSP into list of individual MSP
 
@@ -63,8 +21,7 @@ working_sample <- input_sample_list[i]
 working_sample_spectra <- readLines(working_sample)
 
 # Make a factor specifying each spectrum
-spectrum_factor <- vector(mode = "integer", 
-  length = length(working_sample_spectra)) 
+spectrum_factor <- vector(mode = "integer", length = length(working_sample_spectra)) 
 spectrum_count <- 1
 # Variable spectrum_count is the same for each line of a spectrum, then iterates by +1 if it encounters a newline (defining the next spectrum).
 for(i in 1: length(working_sample_spectra)) {
@@ -75,39 +32,62 @@ for(i in 1: length(working_sample_spectra)) {
     spectrum_count <- spectrum_count + 1
   }
 }
+
 # TODO If end of file contains more than one newline, ignore.
+
 # Split vector `a` containing the spectra by the defined spectrumFactor.
 spectrum_list <- split(working_sample_spectra, f = spectrum_factor)
-# spectrum_list[[1]] will need to iterate through spectrum list
+
+# TODO NEXT spectrum_list[[1]] below will need to iterate through spectrum list
 x <- strsplit(spectrum_list[[1]], split = ";", fixed = TRUE)
+# Remove `character(0)` element from list that results from the newline
+x <- x[lengths(x) != 0]
 
-z <- strsplit(c(" 990   0"), split = "[[:space:]]")[[1]]
-z <- z[z != ""]
+results <- data.frame(mz = NULL, intensity = NULL, sample = NULL)
 
-RemoveWhite <- function(x) {
-    y <- strsplit(x, split = "[[:space:]]")[[1]]
+for(i in 3:length(x)) {
+  for(j in 1:length(x[[i]])) {
+    y <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]]
     z <- y[y != ""]
-    return(as.numeric(z))
+    z <- c(z, working_sample)
+
+# TODO Try data.table:rbindlist instead of rbind
+
+    results <- rbind(results, z)
   }
-results.list <- lapply(x, RemoveWhite)
+}
 
+# for(i in 3:length(x)) {
+#   for(j in 1:length(x[[i]])) {
+#     y <- strsplit(x[[i]][j], split = "[[:space:]]")
+#     z <- y[y != ""]
+#     results <- rbind(results, z)
+#   }
+# }
 
-y <- as.data.frame(do.call("rbind", x))
-values <- NULL
-  for (i in 1:ncol(y)) {
-    values <- c(values, y[, i])
-  }
-tall.format <- as.vector(values, mode = "character")
-
-# lapply(y, FUN = )
-
-RemoveWhite <- function(x) {
-    y <- strsplit(x, split = "[[:space:]]")[[1]]
-    z <- y[y != ""]
-    return(as.numeric(z))
-  }
-  results.list <- lapply(x, RemoveWhite)
-
+# RemoveWhite <- function(x) {
+#     y <- strsplit(x, split = "[[:space:]]")[[1]]
+#     z <- y[y != ""]
+#     return(as.numeric(z))
+#   }
+# results.list <- lapply(x, RemoveWhite)
+ 
+# 
+# y <- as.data.frame(do.call("rbind", x))
+# values <- NULL
+#   for (i in 1:ncol(y)) {
+#     values <- c(values, y[, i])
+#   }
+# tall.format <- as.vector(values, mode = "character")
+# 
+# # lapply(y, FUN = )
+# 
+# RemoveWhite <- function(x) {
+#     y <- strsplit(x, split = "[[:space:]]")[[1]]
+#     z <- y[y != ""]
+#     return(as.numeric(z))
+#   }
+#   results.list <- lapply(x, RemoveWhite)
 
 # Make individual files, where the filename specifies the original order in 
 # the input file. Removes blank lines and writeLines adds a single blank line
