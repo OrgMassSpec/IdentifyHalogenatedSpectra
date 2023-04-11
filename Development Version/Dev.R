@@ -18,6 +18,7 @@ input_sample_list <- list.files("Step 1 Input Spectra", full.names = TRUE)
 # for (i in 1:length(input_sample_list)) { # add closing bracket later
 i <- 1
 working_sample <- input_sample_list[i] 
+# TODO NEXT split working_sample to include sample name only, not the folder, so the entire path is not printed in the final data frame
 working_sample_spectra <- readLines(working_sample)
 
 # Make a factor specifying each spectrum
@@ -38,25 +39,26 @@ for(i in 1: length(working_sample_spectra)) {
 # Split vector `a` containing the spectra by the defined spectrumFactor.
 spectrum_list <- split(working_sample_spectra, f = spectrum_factor)
 
-# TODO NEXT spectrum_list[[1]] below will need to iterate through spectrum list
-x <- strsplit(spectrum_list[[1]], split = ";", fixed = TRUE)
-# Remove `character(0)` element from list that results from the newline
-x <- x[lengths(x) != 0]
+results <- data.frame(mz = NULL, intensity = NULL, sample = NULL, peak_number = NULL)
+for(ii in 1:length(spectrum_list)) {
+  x <- strsplit(spectrum_list[[ii]], split = ";", fixed = TRUE)
+  # Remove `character(0)` element from list that results from the newline
+  x <- x[lengths(x) != 0]
 
-results <- data.frame(mz = NULL, intensity = NULL, sample = NULL)
+  for(i in 3:length(x)) {
+    for(j in 1:length(x[[i]])) {
+      y <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]]
+      z <- y[y != ""]
+      z <- c(z, working_sample, ii)
 
-for(i in 3:length(x)) {
-  for(j in 1:length(x[[i]])) {
-    y <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]]
-    z <- y[y != ""]
-    z <- c(z, working_sample)
+  # TODO Try data.table:rbindlist instead of rbind
 
-# TODO Try data.table:rbindlist instead of rbind
-
-    results <- rbind(results, z)
+      results <- rbind(results, z)
+    }
   }
 }
 
+write.csv(results, file = 'Output.txt')
 # for(i in 3:length(x)) {
 #   for(j in 1:length(x[[i]])) {
 #     y <- strsplit(x[[i]][j], split = "[[:space:]]")
