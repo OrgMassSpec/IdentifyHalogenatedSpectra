@@ -18,7 +18,8 @@ input_sample_list <- list.files("Step 1 Input Spectra", full.names = TRUE)
 # for (i in 1:length(input_sample_list)) { # add closing bracket later
 i <- 1
 working_sample <- input_sample_list[i] 
-# TODO NEXT split working_sample to include sample name only, not the folder, so the entire path is not printed in the final data frame
+tmp_name <- strsplit(working_sample, split = '/', fixed = TRUE)[[1]][2]
+working_sample_name <- substr(tmp_name, 1, nchar(tmp_name) - 4) # remove .txt
 working_sample_spectra <- readLines(working_sample)
 
 # Make a factor specifying each spectrum
@@ -49,7 +50,7 @@ for(ii in 1:length(spectrum_list)) {
     for(j in 1:length(x[[i]])) {
       y <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]]
       z <- y[y != ""]
-      z <- c(z, working_sample, ii)
+      z <- c(z, working_sample_name, ii)
 
   # TODO Try data.table:rbindlist instead of rbind
 
@@ -57,7 +58,7 @@ for(ii in 1:length(spectrum_list)) {
     }
   }
 }
-
+# TODO NEXT Rename headers
 write.csv(results, file = 'Output.txt')
 # for(i in 3:length(x)) {
 #   for(j in 1:length(x[[i]])) {
