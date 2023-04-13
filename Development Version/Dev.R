@@ -40,7 +40,7 @@ for(i in 1: length(working_sample_spectra)) {
 # Split vector `a` containing the spectra by the defined spectrumFactor.
 spectrum_list <- split(working_sample_spectra, f = spectrum_factor)
 
-results <- data.frame(mz = NULL, intensity = NULL, sample = NULL, peak_number = NULL)
+results <- data.frame(subnominal_mz = NULL, intensity = NULL, sample = NULL, peak_number = NULL, nominal_mz = NULL)
 for(ii in 1:length(spectrum_list)) {
   x <- strsplit(spectrum_list[[ii]], split = ";", fixed = TRUE)
   # Remove `character(0)` element from list that results from the newline
@@ -50,15 +50,27 @@ for(ii in 1:length(spectrum_list)) {
     for(j in 1:length(x[[i]])) {
       y <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]]
       z <- y[y != ""]
-      z <- c(z, working_sample_name, ii)
+      
+      # TODO insert nominal m/z
+      nominal_mz <- round(as.numeric(z[1]))
+
+      z <- c(z, working_sample_name, ii, nominal_mz)
+
+      # TODO NEXT Add in missing integer nominal_mz values
 
   # TODO Try data.table:rbindlist instead of rbind
 
       results <- rbind(results, z)
+# TODO NEXT Rename headers
     }
   }
 }
-# TODO NEXT Rename headers
+
+# Has doublet:
+# 24     79.07735   39.75    PCB Mix v2    1    79
+# 25     79.29673    5.60    PCB Mix v2    1    79
+
+
 write.csv(results, file = 'Output.txt')
 # for(i in 3:length(x)) {
 #   for(j in 1:length(x[[i]])) {
