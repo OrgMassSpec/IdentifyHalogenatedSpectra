@@ -1,5 +1,5 @@
 # IdentifyHalogenatedSpectra
-Identify halogenated (Br/Cl) unit resolution mass spectra.
+Identify halogenated (Br/Cl) unit resolution mass spectra. Development version for subnominal resolution mass spectra. 
 
 ## R Script
 
