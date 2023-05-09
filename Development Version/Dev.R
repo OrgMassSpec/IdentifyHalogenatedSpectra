@@ -1,6 +1,5 @@
 # Dev version for MSP spectrum
 
-### Setup ###
 rm(list = ls())
 # library(OrgMassSpecR) # The OrgMassSpecR version must be >= 0.5-1.
 
@@ -12,56 +11,67 @@ rm(list = ls())
 # dir.create("Step 4 MSP to CSV", showWarnings = FALSE)
 # cat("OK\n")
 
-# Split MSP into list of individual MSP
+# Split ChromaTOF-exported MSP into list of individual MSP spectra
 
-input_sample_list <- list.files("Step 1 Input Spectra", full.names = TRUE)
-# for (i in 1:length(input_sample_list)) { # add closing bracket later
-i <- 1
-working_sample <- input_sample_list[i] 
-tmp_name <- strsplit(working_sample, split = '/', fixed = TRUE)[[1]][2]
-working_sample_name <- substr(tmp_name, 1, nchar(tmp_name) - 4) # remove .txt
-working_sample_spectra <- readLines(working_sample)
+# Read input MSP file into character vector of one line per element
+input_sample_list <- list.files("Step 1 Input Spectra", full.names = TRUE) # input_sample_list is a vector of paths to the input MSP spectra files
 
-# Make a factor specifying each spectrum
-spectrum_factor <- vector(mode = "integer", length = length(working_sample_spectra)) 
+# for (i in 1:length(input_sample_list)) { # Increment through path list
+i <- 1 # For dev: work with single file
+working_sample <- input_sample_list[i] # Select path from list
+tmp_name <- strsplit(working_sample, split = '/', fixed = TRUE)[[1]][2] # Select file name from path
+working_sample_name <- substr(tmp_name, 1, nchar(tmp_name) - 4) # Remove '.txt' from file name
+working_sample_spectra <- readLines(working_sample) # Read in to chr vector of MSP file.
+
+# Make vector defining the separate spectra
+spectrum_factor <- vector(mode = "integer", length = length(working_sample_spectra)) # Empty vector to specify each spectrum
 spectrum_count <- 1
-# Variable spectrum_count is the same for each line of a spectrum, then iterates by +1 if it encounters a newline (defining the next spectrum).
 for(i in 1: length(working_sample_spectra)) {
-  if(working_sample_spectra[i] != "") {
-    spectrum_factor[i] <- spectrum_count
+  if(working_sample_spectra[i] != "") { 
+    spectrum_factor[i] <- spectrum_count # spectrum_factor same for lines within a spectrm
   } else {
     spectrum_factor[i] <- spectrum_count
-    spectrum_count <- spectrum_count + 1
+    spectrum_count <- spectrum_count + 1 # spectrum_count iterates by +1 if it encounters a newline (defining the next spectrum)
   }
 }
 
-# TODO If end of file contains more than one newline, ignore.
+# TODO If end of file contains more than one newline, ignore
 
-# Split vector `a` containing the spectra by the defined spectrumFactor.
-spectrum_list <- split(working_sample_spectra, f = spectrum_factor)
+# Split spectra into list elements and convert to data frame
+spectrum_list <- split(working_sample_spectra, f = spectrum_factor) # Split into list elements defined by spectrum_factor
 
-results <- data.frame(subnominal_mz = NULL, intensity = NULL, sample = NULL, peak_number = NULL, nominal_mz = NULL)
-for(ii in 1:length(spectrum_list)) {
-  x <- strsplit(spectrum_list[[ii]], split = ";", fixed = TRUE)
-  # Remove `character(0)` element from list that results from the newline
-  x <- x[lengths(x) != 0]
+  # > str(spectrum_list)
+  # List of 3
+  # $ 1: chr [1:10] "NAME: 1,1'-Bicyclohexyl" "Num Peaks: 64" "50.03646 3.46;51.04831 11.13;52.05490 6.61;...
 
-  for(i in 3:length(x)) {
-    for(j in 1:length(x[[i]])) {
-      y <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]]
-      z <- y[y != ""]
-      
-      # TODO insert nominal m/z
-      nominal_mz <- round(as.numeric(z[1]))
+results <- data.frame(subnominal_mz = NULL, intensity = NULL, sample = NULL, peak_number = NULL, nominal_mz = NULL) # Empty data frame
+for(ii in 1:length(spectrum_list)) { # Get individual spectrum
+  x <- strsplit(spectrum_list[[ii]], split = ";", fixed = TRUE) # Split out peaks (m/z and intensity pairs) into list subelements
 
-      z <- c(z, working_sample_name, ii, nominal_mz)
+  # > str(x)
+  # List of 10
+  #  $ : chr "NAME: 1,1'-Bicyclohexyl"
+  #  $ : chr "Num Peaks: 64"
+  #  $ : chr [1:10] "50.03646 3.46" "51.04831 11.13" "52.05490 6.61" "53.06468 49.07" ...
+  #  $ : chr [1:10] "63.05270 1.24" "65.06774 14.55" "65.28902 1.35" "66.07368 11.33" ...
 
-      # TODO NEXT Add in missing integer nominal_mz values
+  x <- x[lengths(x) != 0] # Remove `character(0)` elements from list that results from newlines
+  for(i in 3:length(x)) { # Iterate through rows containing peaks, skiping NAME and Num Peaks
+    for(j in 1:length(x[[i]])) { # Iterate through peaks within a row
+      y <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]] # Vector of m/z intensity pair
+      z <- y[y != ""] # Remove if empty
+      nominal_mz <- round(as.numeric(z[1])) # Make nominal mass
+      z <- c(z, working_sample_name, ii, nominal_mz) # Accurate m/z, intensity, sample name, spectrum number, nominal m/z
 
-  # TODO Try data.table:rbindlist instead of rbind
+      # TODO NEXT Bin and add subnominal intensity. Look for repeating nominal m/z to identify? Add subnominal intensities.
+      # TODO NEXT Add missing integer nominal_mz values to data frame.
+      # TODO Try data.table:rbindlist instead of rbind
+      # TODO Implement intensity threshold. Apply at end?
 
       results <- rbind(results, z)
-# TODO NEXT Rename headers
+      
+      # TODO NEXT Rename headers
+
     }
   }
 }
