@@ -44,7 +44,10 @@ spectrum_list <- split(working_sample_spectra, f = spectrum_factor) # Split into
   # List of 3
   # $ 1: chr [1:10] "NAME: 1,1'-Bicyclohexyl" "Num Peaks: 64" "50.03646 3.46;51.04831 11.13;52.05490 6.61;...
 
-results <- data.frame(subnominal_mz = NULL, intensity = NULL, sample = NULL, peak_number = NULL, nominal_mz = NULL) # Empty data frame
+N <- length(spectrum_list) * 100 # Preallocate data frame. Estimated number of rows assumes 100 peaks per spectrum 
+
+results <- data.frame(subnominal_mz = rep(NA, N), intensity = rep(NA, N), sample = rep("", N), peak_number = rep(NA, N), nominal_mz = rep(NA, N)) # Empty data frame
+#results <- data.frame(subnominal_mz = NA, intensity = NA, sample = NA, peak_number = NA, nominal_mz = NA) # Empty data frame
 for(ii in 1:length(spectrum_list)) { # Get individual spectrum
   x <- strsplit(spectrum_list[[ii]], split = ";", fixed = TRUE) # Split out peaks (m/z and intensity pairs) into list subelements
 
@@ -56,21 +59,31 @@ for(ii in 1:length(spectrum_list)) { # Get individual spectrum
   #  $ : chr [1:10] "63.05270 1.24" "65.06774 14.55" "65.28902 1.35" "66.07368 11.33" ...
 
   x <- x[lengths(x) != 0] # Remove `character(0)` elements from list that results from newlines
+  row_num <- 1 # Keep track of data frame row number
   for(i in 3:length(x)) { # Iterate through rows containing peaks, skiping NAME and Num Peaks
     for(j in 1:length(x[[i]])) { # Iterate through peaks within a row
       y <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]] # Vector of m/z intensity pair
       z <- y[y != ""] # Remove if empty
       nominal_mz <- round(as.numeric(z[1])) # Make nominal mass
-      z <- c(z, working_sample_name, ii, nominal_mz) # Accurate m/z, intensity, sample name, spectrum number, nominal m/z
+      #a <- c(as.numeric(z), working_sample_name, as.numeric(ii), as.numeric(nominal_mz)) # Accurate m/z, intensity, sample name, spectrum number, nominal m/z
 
+      # TODO list preserves data types, but need to split z into separate elements.
+
+      a <- list(as.numeric(z), working_sample_name, as.numeric(ii), as.numeric(nominal_mz)) # Accurate m/z, intensity, sample name, spectrum number, nominal m/z
+
+      # TODO Convert data types? Using as.numeric when z is created? This isn't working. 
       # TODO NEXT Bin and add subnominal intensity. Look for repeating nominal m/z to identify? Add subnominal intensities.
       # TODO NEXT Add missing integer nominal_mz values to data frame.
       # TODO Try data.table:rbindlist instead of rbind
       # TODO Implement intensity threshold. Apply at end?
+      # TODO Report status to separate output file and terminal. 
 
-      results <- rbind(results, z)
-      
+      #results <- rbind(results, z, make.row.names = FALSE) # Slow?
+      results[row_num, ] <- a
+      row_num <- row_num + 1
+
       # TODO NEXT Rename headers
+      # TODO Split off unused rows?
 
     }
   }
