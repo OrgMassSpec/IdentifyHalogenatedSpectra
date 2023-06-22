@@ -21,8 +21,10 @@ input_sample_list <- list.files("Step 1 Input Spectra", full.names = TRUE)
 i <- 1 # For dev: work with single file
 working_sample <- input_sample_list[i] # Select path from list
 tmp_name <- strsplit(working_sample, split = '/', fixed = TRUE)[[1]][2] # Select file name from path
-working_sample_name <- substr(tmp_name, 1, nchar(tmp_name) - 4) # Remove '.txt' from file name
+working_sample_name <- substr(tmp_name, 1, nchar(tmp_name) - 4) # Remove '.txt' from file name # TODO Use or delete?
 working_sample_spectra <- readLines(working_sample) # Read file in to character vector 
+
+cat('Processing ', tmp_name, '... \n', sep = '')
 
 # Make a vector (spectrum_factor) that defines the separate spectra within the file. spectrum_factor is defined by spectrum_count, which iterates by + 1 if it encounters a newline that defines the next spectrum. 
 spectrum_factor <- vector(mode = "integer", length = length(working_sample_spectra))
@@ -44,18 +46,19 @@ spectrum_list <- split(working_sample_spectra, f = spectrum_factor)
 
 # Preallocate the data frame size (N) with an estimate of the total number of m/z peaks in the file: find the number of rows in each spectrum, exclude 3 rows per spectrum for the headers and blank line, find the sum total, and multiply by 10 (the max number of allowed m/s peaks per row). Create the empty data frame (df).
 N <- sum(lengths(spectrum_list) - 3) * 10 
-df <- data.frame(sample = rep("", N), peak_number = rep(NA, N), 
-  subnominal_mz = rep(NA, N), nominal_mz = rep(NA, N), intensity = rep(NA, N))
+df <- data.frame(peak_number = rep(NA, N), subnominal_mz = rep(NA, N), nominal_mz = rep(NA, N), intensity = rep(NA, N))
 
 # Track data frame row number (row_num) and iterate through the individual spectra (spectrum_list_i) from spectrum_list. Split out peaks (m/z and intensity pairs) into list subelements (x). Remove `character(0)` elements from list that results from newlines.
 
 n <- length(spectrum_list)
 
 row_num <- 1 
+cat('Total number of spectra:', n, '\n')
+cat('Reading in spectrum:\n')
 
 for(spectrum_list_i in 1:length(spectrum_list)) { 
 
-  cat('Processing spectrum', spectrum_list_i, 'of', n, '\n')
+  cat(sprintf('\r'), spectrum_list_i, sep = '')
 
   x <- strsplit(spectrum_list[[spectrum_list_i]], split = ";", fixed = TRUE)
   x <- x[lengths(x) != 0] 
@@ -67,8 +70,7 @@ for(spectrum_list_i in 1:length(spectrum_list)) {
       mz_int <- mz_int[mz_int != ""] 
       nominal_mz <- round(as.numeric(mz_int[1]))
 
-      a <- list(working_sample_name, as.numeric(spectrum_list_i), as.numeric(mz_int)[1], 
-        as.numeric(nominal_mz), as.numeric(mz_int)[2]) 
+      a <- list(as.numeric(spectrum_list_i), as.numeric(mz_int)[1], as.numeric(nominal_mz), as.numeric(mz_int)[2]) 
 
       df[row_num, ] <- a
       row_num <- row_num + 1
@@ -77,16 +79,15 @@ for(spectrum_list_i in 1:length(spectrum_list)) {
   }
 }
 
-# Remove unused rows and rows with and intensity below the threshold. For the remaining data, sum the intensities of duplicated nominal_mz values within the spectrum. The subnominal_mz for the the m/z peak with the larger original intensity is kept, but with the original intensity replaced by the summed intensity. The smaller intensity m/z peak is deleted. Columns are then reordered.
+# Remove unused rows (NA). For the remaining data, sum the intensities of duplicated nominal_mz values within the spectrum. The subnominal_mz for the the m/z peak with the larger original intensity is kept, but with the original intensity replaced by the summed intensity. The smaller intensity m/z peak is deleted. Columns are then reordered.
 df <- na.omit(df) 
-df <- df[df$intensity > 50, ]    
 df_aggregated <- aggregate(df['intensity'], by = df[c('peak_number', 'nominal_mz')], sum)
 df_combined <- merge(df, df_aggregated, by = c('peak_number', 'nominal_mz'))
 df_ordered <- df_combined[order(df_combined$peak_number, df_combined$nominal_mz, -df_combined$intensity.x), ] 
-df_complete <- df_ordered[!duplicated(df_ordered[c('peak_number', 'nominal_mz', 'intensity.y')]), ]
-rownames(df_complete) <- NULL
-df_complete <- df_complete[, c('sample', 'peak_number', 'subnominal_mz', 'nominal_mz', 'intensity.y')]
-names(df_complete)[names(df_complete) == 'intensity.y'] <- 'intensity'
+df_read <- df_ordered[!duplicated(df_ordered[c('peak_number', 'nominal_mz', 'intensity.y')]), ]
+rownames(df_read) <- NULL
+df_read <- df_read[, c('peak_number', 'subnominal_mz', 'nominal_mz', 'intensity.y')]
+names(df_read)[names(df_read) == 'intensity.y'] <- 'intensity'
 
 # TODO Make Intensity threshold settable
 # REPORT status to separate output file and terminal. 
@@ -95,4 +96,89 @@ names(df_complete)[names(df_complete) == 'intensity.y'] <- 'intensity'
 
 # TODO Double check with more complex examples
 
-write.csv(df_complete, file = 'Output.txt')
+# Remove spectra with less than 10 ions above mz 100. 
+
+# Reset row number
+
+rm(list = setdiff(ls(), "df_read"))
+cat(' -> Completed...\n')
+cat('Memory used to read data frame:', format(object.size(df_read), units = 'Mb'), '\n')
+
+# Add in placeholders for all nominal m/z values
+
+# Construct df with all nominal mz values and merge. Find min and max values for each peak_number and build df using rep().  
+z <- data.frame(NULL)
+for(i in unique(df_read$peak_number)) {
+  tmp <- df_read[df_read$peak_number == i, ]
+  x_min <- min(tmp$nominal_mz)
+  x_max <- max(tmp$nominal_mz)
+  nominal_values <- x_min:x_max
+  y <- data.frame(peak_number = i, nominal_mz = nominal_values)
+  z <- rbind(z, y)
+}
+
+df <- merge(df_read, z, by = c('peak_number', 'nominal_mz'), all = TRUE)
+df$intensity[is.na(df$intensity)] <- 0
+
+cat('Adding in missing nominal m/z values... \n')
+cat('Memory used by full nominal m/z data frame:', format(object.size(df), units = 'Mb'), '\n')
+
+#write.csv(df_read, file = 'Output.txt')
+rm(list = setdiff(ls(), "df"))
+
+
+
+
+
+# Normalize peak intensity to percentage of max peak and only examine m/z > 100 amu.
+cat('Applying filter 1 to spectrum:\n')
+df$filter_1 <- FALSE
+  
+for(i in unique(df$peak_number)) {
+#  i <- 1
+  cat(sprintf('\r'), i, sep = '')
+  x <- df[df$peak_number == i, ]
+  x$intensity <- with(x, intensity / max(intensity) * 100)
+  x <- x[x$nominal_mz > 100, ]
+
+
+  for(i in (nrow(x) - 6):5) {
+    
+    if(x$intensity[i] > 3) {
+      
+      # Calculate peak ratios.
+      
+      peakRatio1 <- x$intensity[i + 1] / x$intensity[i]
+      peakRatio2 <- x$intensity[i + 2] / x$intensity[i]
+      peakRatio3 <- x$intensity[i + 3] / x$intensity[i]
+      peakRatio4 <- x$intensity[i + 4] / x$intensity[i]
+      peakRatio5 <- x$intensity[i + 5] / x$intensity[i]
+      peakRatio6 <- x$intensity[i + 6] / x$intensity[i]
+      peakRatioa <- x$intensity[i - 1] / x$intensity[i]
+      peakRatiob <- x$intensity[i - 2] / x$intensity[i]
+      peakRatioc <- x$intensity[i - 4] / x$intensity[i]
+      
+      # Determine if peak ratios pass rules.
+      
+      if(peakRatio1 < 0.5 & peakRatio1 > 0.003 &   # Rule 1
+         peakRatio2 > 0.225 & peakRatio2 <= 1 &    # Rule 2
+         peakRatio1 < peakRatio2 &                 # Rule 3
+         peakRatio3 < 0.5 & peakRatio3 > 0.001 &   # Rule 4
+         peakRatio3 < peakRatio1 &                 # Rule 5
+         peakRatio4 < peakRatio2 &                 # Rule 6
+         peakRatio5 < peakRatio1 &                 # Rule 7
+         peakRatio6 < peakRatio2 &                 # Rule 8
+         peakRatioa < 0.5 &                        # Rule 9
+         peakRatiob < 1 &                          # Rule 10
+         peakRatioc < 1) {                         # Rule 11
+        
+        x$filter_1[i] <- TRUE
+        
+      }
+      
+    } # encloses filter
+    
+  } # encloses for loop that iterates through each m/z
+}
+  cat(' -> Completed...\n') 
+  # return(any(x$Filter))  # Returns TRUE if compound is halogenated.
