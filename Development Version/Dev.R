@@ -96,17 +96,25 @@ names(df_read)[names(df_read) == 'intensity.y'] <- 'intensity'
 
 # TODO Double check with more complex examples
 
-# Remove spectra with less than 10 ions above mz 100. 
-
-# Reset row number
-
 rm(list = setdiff(ls(), "df_read"))
 cat(' -> Completed...\n')
 cat('Memory used to read data frame:', format(object.size(df_read), units = 'Mb'), '\n')
 
-# Add in placeholders for all nominal m/z values
+# Remove spectra with less than 10 ions above m/z 100. These are 'noise spectra'. 
+n_removed <- 0
+for(i in unique(df_read$peak_number)) {
+  tmp <- df_read[df_read$peak_number == i, ]
+  if(nrow(tmp[tmp$nominal_mz > 100, ]) < 10) {
+    df_read <- df_read[df_read$peak_number != i, ]
+    n_removed <- n_removed + 1
+  }    
+}
+cat('Number of noise spectra removed:', n_removed, '\n')
+cat('New total number of spectra:', length(unique(df_read$peak_number)), '\n')
 
+# Add in placeholders for all nominal m/z values
 # Construct df with all nominal mz values and merge. Find min and max values for each peak_number and build df using rep().  
+cat('Adding in missing nominal m/z values... \n')
 z <- data.frame(NULL)
 for(i in unique(df_read$peak_number)) {
   tmp <- df_read[df_read$peak_number == i, ]
@@ -119,28 +127,21 @@ for(i in unique(df_read$peak_number)) {
 
 df <- merge(df_read, z, by = c('peak_number', 'nominal_mz'), all = TRUE)
 df$intensity[is.na(df$intensity)] <- 0
-
-cat('Adding in missing nominal m/z values... \n')
+rownames(df_read) <- NULL
 cat('Memory used by full nominal m/z data frame:', format(object.size(df), units = 'Mb'), '\n')
 
 #write.csv(df_read, file = 'Output.txt')
 rm(list = setdiff(ls(), "df"))
 
-
-
-
-
 # Normalize peak intensity to percentage of max peak and only examine m/z > 100 amu.
-cat('Applying filter 1 to spectrum:\n')
+cat('Applying filter 1 to spectrum (original ID#):\n')
 df$filter_1 <- FALSE
   
 for(i in unique(df$peak_number)) {
-#  i <- 1
   cat(sprintf('\r'), i, sep = '')
   x <- df[df$peak_number == i, ]
   x$intensity <- with(x, intensity / max(intensity) * 100)
   x <- x[x$nominal_mz > 100, ]
-
 
   for(i in (nrow(x) - 6):5) {
     
@@ -172,13 +173,19 @@ for(i in unique(df$peak_number)) {
          peakRatiob < 1 &                          # Rule 10
          peakRatioc < 1) {                         # Rule 11
         
-        x$filter_1[i] <- TRUE
-        
+        x$filter_1[i] <- TRUE 
       }
-      
-    } # encloses filter
-    
-  } # encloses for loop that iterates through each m/z
+    } 
+  } 
+  x <- x[, c('peak_number', 'nominal_mz', 'filter_1')]
+
+## NEXT Build results with rbind and then merge to df. merging one at a time doesn't seem to work. 
+
+  df <- merge(df, x, by = c('peak_number', 'nominal_mz'))
 }
-  cat(' -> Completed...\n') 
-  # return(any(x$Filter))  # Returns TRUE if compound is halogenated.
+cat(' -> Completed...\n') 
+#rm(list = setdiff(ls(), "df"))
+cat('Memory used by data frame with filter 1 results:', format(object.size(df), units = 'Mb'), '\n')
+
+# TODO count number of halogenated spectra
+# return(any(x$Filter))  # Returns TRUE if compound is halogenated.
