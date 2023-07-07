@@ -136,7 +136,8 @@ rm(list = setdiff(ls(), "df"))
 # Normalize peak intensity to percentage of max peak and only examine m/z > 100 amu.
 cat('Applying filter 1 to spectrum (original ID#):\n')
 df$filter_1 <- FALSE
-  
+y <- data.frame(NULL)
+
 for(i in unique(df$peak_number)) {
   cat(sprintf('\r'), i, sep = '')
   x <- df[df$peak_number == i, ]
@@ -178,14 +179,15 @@ for(i in unique(df$peak_number)) {
     } 
   } 
   x <- x[, c('peak_number', 'nominal_mz', 'filter_1')]
+  y <- rbind(y, x)
 
-## NEXT Build results with rbind and then merge to df. merging one at a time doesn't seem to work. 
-
-  df <- merge(df, x, by = c('peak_number', 'nominal_mz'))
 }
+
+df <- merge(df, y, by = c('peak_number', 'nominal_mz'))
 cat(' -> Completed...\n') 
 #rm(list = setdiff(ls(), "df"))
 cat('Memory used by data frame with filter 1 results:', format(object.size(df), units = 'Mb'), '\n')
 
 # TODO count number of halogenated spectra
 # return(any(x$Filter))  # Returns TRUE if compound is halogenated.
+# TODO filter 2
