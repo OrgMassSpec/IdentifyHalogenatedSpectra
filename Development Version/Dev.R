@@ -194,139 +194,137 @@ cat('Memory used by data frame with filter 1 results:', format(object.size(df), 
 
 # TODO filter 2
 
-
-
 # Is this needed? Wouldn't similarity score be poor against a second peak in the distribution anyways? Computationally it is easier to just calculate the similarity score against all filter_1 == TRUE. 
 
-SelectHalogenatedDistribution <- function(xFilter, x) { 
-
-# xFilter is the full data frame and x is the results of filter 1
-
-
-  # Remove miss-identified peaks within the same distribution. Sometimes another
-  # peak within the same distribution is identified. Only the maximum peak 
-  # within the distribution should be identified. The following code eliminates
-  # any multiple identifications within the same distribution, although not
-  # necessairly the maximum one. The maximum peak is identified again later when
-  # plotting the distribution.
-  
-  xFilter$Diff <- c(diff(xFilter$mz), 100) # 100 is placeholder at the end
-  xFilter <- xFilter[xFilter$Diff > 10, ] # exclude if within 10 mz units
-  
-  # Select the 5 most abundant distributions. Then return to the original order.
-  if(nrow(xFilter) > 5) {
-    
-    xFilter <- head(xFilter[rev(order(xFilter$intensity)), ], n = 5) 
-    xFilter <- xFilter[order(xFilter$mz), ]
-    
-  }
-  
-  # Select window of m/z around the experimental distributions and store in
-  # distList.
-  
-  distList <- vector(mode = 'list')
-
-
-# NEED THIS
-  # Slices -10 to + 10 around the filter_1 = true result? This then goes to the match against the theoretical distributions.
-  for (i in 1:nrow(xFilter)) {
-    distList[[i]] <- x[x$mz %in% seq(from = xFilter$mz[i] - 10, to = xFilter$mz[i] + 10, by = 1), ]  
-  }
-  return(distList)
-  
-}
-
-# Isolate halogenated distributions. xFilter contains only ions identifed as
-  # halogenated.
-  xFilter <- x[x$Filter == TRUE, ]
-  
-  # Need to skip if no halogenation was detected.
-  if(nrow(xFilter) > 0) {
-    distList <- SelectHalogenatedDistribution(xFilter, x)
-    
-    # Iterate through experimental distributions.
-    for (i in 1:length(distList)) {
-      xDist <- distList[[i]]
-    }
-    
-
-
-# Implement this.
-SimilarityScoreMatch <- function(xDist, tDistList, tDistAll) {
-  
-  resultStore <- data.frame(NULL)
-  
-  # Iterate through each theoretical distribution and calculate a similarity
-  # score against the experimental spectrum.
-  for (j in 1:length(tDistList)) {
-    
-    tDist <- tDistAll[tDistAll$DistributionLabel == tDistList[j], ] # current theoretical distribution
-    
-    # Align theoretical distribution to experimental distribution based on the
-    # maximum peak (maxvalue). The theoretical distribution m/z window is
-    # given the same size as the experimental m/z window.
-
-
-    # Where is it getting xDist. 
-    tDist$mz[tDist$percent == 100] <- xDist$mz[which.max(xDist$percentIntensity)]
-    maxvalue <- xDist$mz[which.max(xDist$percentIntensity)]
-    index <- which.max(tDist$mz)
-    
-    if(index > 1) {
-      startValue <- maxvalue - (index - 1)
-      endValue <- startValue + nrow(tDist) - 1
-      tDist$mz <- seq(from = startValue, to = endValue, by = 1)
-    }
-    
-    # Need special case when the max ion is the first one.
-    if(index == 1) {
-      startValue <- maxvalue
-      endValue <- maxvalue + nrow(tDist) - 1
-      tDist$mz <- seq(from = startValue, to = endValue, by = 1)
-    }
-    
-    # Merge experimental and theoretical distributions by the m/z.
-    cDist <- merge(xDist, tDist, by = 'mz', all.x = TRUE, all.y = FALSE)
-    cDist$percent[is.na(cDist$percent)] <- 0
-    cDist$DistributionLabel <- tDistList[j]
-    
-    # Calculate similarity score, add to dataframe, and store in resultStore.
-    u <- (cDist$intensity.x/max(cDist$intensity.x)) * 100
-    v <- cDist$percent
-    cDist$SimilarityScore <- as.vector((u %*% v) / (sqrt(sum(u^2)) * sqrt(sum(v^2))))
-    resultStore <- rbind(resultStore, cDist)
-    
-  }
-  
-  return(resultStore)
-  
-}
-
-# Move this code to start of filter 2?
-
-  # Read in theoretical distributions
-    tDistAll <- read.csv('Theoretical Distributions.csv', stringsAsFactors = FALSE)
-    tDistAll$mz <- NA
-    tDistList <- unique(tDistAll$DistributionLabel)
-    bestMatchStore <- data.frame(NULL)
-    
-    # Iterate through experimental distributions to make an identificaiton of each
-    # one. bestMatchStore holds the identification information for output.
-    for (i in 1:length(distList)) {
-      
-      xDist <- distList[[i]] 
-      resultStore <- SimilarityScoreMatch(xDist, tDistList, tDistAll)
-      
-      # Deterime best match by highest similarity score, and calculate the noise
-      # of the experimental distribution.
-      bestMatch <- resultStore[resultStore$SimilarityScore == max(resultStore$SimilarityScore), ]
-      bestMatch$Noise <- with(bestMatch, round((abs(percent - percentIntensity) / percent) * 100))
-      
-      # Set up best match data frame.
-      bestMatch$ID <- i
-      bestMatch$Spectrum <- spectrumFilename
-      bestMatchStore <- rbind(bestMatchStore, bestMatch)
-      
-    }
-    
-  }
+#SelectHalogenatedDistribution <- function(xFilter, x) { 
+#
+## xFilter is the full data frame and x is the results of filter 1
+#
+#
+#  # Remove miss-identified peaks within the same distribution. Sometimes another
+#  # peak within the same distribution is identified. Only the maximum peak 
+#  # within the distribution should be identified. The following code eliminates
+#  # any multiple identifications within the same distribution, although not
+#  # necessairly the maximum one. The maximum peak is identified again later when
+#  # plotting the distribution.
+#  
+#  xFilter$Diff <- c(diff(xFilter$mz), 100) # 100 is placeholder at the end
+#  xFilter <- xFilter[xFilter$Diff > 10, ] # exclude if within 10 mz units
+#  
+#  # Select the 5 most abundant distributions. Then return to the original order.
+#  if(nrow(xFilter) > 5) {
+#    
+#    xFilter <- head(xFilter[rev(order(xFilter$intensity)), ], n = 5) 
+#    xFilter <- xFilter[order(xFilter$mz), ]
+#    
+#  }
+#  
+#  # Select window of m/z around the experimental distributions and store in
+#  # distList.
+#  
+#  distList <- vector(mode = 'list')
+#
+#
+## NEED THIS
+#  # Slices -10 to + 10 around the filter_1 = true result? This then goes to the match against the theoretical distributions.
+#  for (i in 1:nrow(xFilter)) {
+#    distList[[i]] <- x[x$mz %in% seq(from = xFilter$mz[i] - 10, to = xFilter$mz[i] + 10, by = 1), ]  
+#  }
+#  return(distList)
+#  
+#}
+#
+## Isolate halogenated distributions. xFilter contains only ions identifed as
+#  # halogenated.
+#  xFilter <- x[x$Filter == TRUE, ]
+#  
+#  # Need to skip if no halogenation was detected.
+#  if(nrow(xFilter) > 0) {
+#    distList <- SelectHalogenatedDistribution(xFilter, x)
+#    
+#    # Iterate through experimental distributions.
+#    for (i in 1:length(distList)) {
+#      xDist <- distList[[i]]
+#    }
+#    
+#
+#
+## Implement this.
+#SimilarityScoreMatch <- function(xDist, tDistList, tDistAll) {
+#  
+#  resultStore <- data.frame(NULL)
+#  
+#  # Iterate through each theoretical distribution and calculate a similarity
+#  # score against the experimental spectrum.
+#  for (j in 1:length(tDistList)) {
+#    
+#    tDist <- tDistAll[tDistAll$DistributionLabel == tDistList[j], ] # current theoretical distribution
+#    
+#    # Align theoretical distribution to experimental distribution based on the
+#    # maximum peak (maxvalue). The theoretical distribution m/z window is
+#    # given the same size as the experimental m/z window.
+#
+#
+#    # Where is it getting xDist. 
+#    tDist$mz[tDist$percent == 100] <- xDist$mz[which.max(xDist$percentIntensity)]
+#    maxvalue <- xDist$mz[which.max(xDist$percentIntensity)]
+#    index <- which.max(tDist$mz)
+#    
+#    if(index > 1) {
+#      startValue <- maxvalue - (index - 1)
+#      endValue <- startValue + nrow(tDist) - 1
+#      tDist$mz <- seq(from = startValue, to = endValue, by = 1)
+#    }
+#    
+#    # Need special case when the max ion is the first one.
+#    if(index == 1) {
+#      startValue <- maxvalue
+#      endValue <- maxvalue + nrow(tDist) - 1
+#      tDist$mz <- seq(from = startValue, to = endValue, by = 1)
+#    }
+#    
+#    # Merge experimental and theoretical distributions by the m/z.
+#    cDist <- merge(xDist, tDist, by = 'mz', all.x = TRUE, all.y = FALSE)
+#    cDist$percent[is.na(cDist$percent)] <- 0
+#    cDist$DistributionLabel <- tDistList[j]
+#    
+#    # Calculate similarity score, add to dataframe, and store in resultStore.
+#    u <- (cDist$intensity.x/max(cDist$intensity.x)) * 100
+#    v <- cDist$percent
+#    cDist$SimilarityScore <- as.vector((u %*% v) / (sqrt(sum(u^2)) * sqrt(sum(v^2))))
+#    resultStore <- rbind(resultStore, cDist)
+#    
+#  }
+#  
+#  return(resultStore)
+#  
+#}
+#
+## Move this code to start of filter 2?
+#
+#  # Read in theoretical distributions
+#    tDistAll <- read.csv('Theoretical Distributions.csv', stringsAsFactors = FALSE)
+#    tDistAll$mz <- NA
+#    tDistList <- unique(tDistAll$DistributionLabel)
+#    bestMatchStore <- data.frame(NULL)
+#    
+#    # Iterate through experimental distributions to make an identificaiton of each
+#    # one. bestMatchStore holds the identification information for output.
+#    for (i in 1:length(distList)) {
+#      
+#      xDist <- distList[[i]] 
+#      resultStore <- SimilarityScoreMatch(xDist, tDistList, tDistAll)
+#      
+#      # Deterime best match by highest similarity score, and calculate the noise
+#      # of the experimental distribution.
+#      bestMatch <- resultStore[resultStore$SimilarityScore == max(resultStore$SimilarityScore), ]
+#      bestMatch$Noise <- with(bestMatch, round((abs(percent - percentIntensity) / percent) * 100))
+#      
+#      # Set up best match data frame.
+#      bestMatch$ID <- i
+#      bestMatch$Spectrum <- spectrumFilename
+#      bestMatchStore <- rbind(bestMatchStore, bestMatch)
+#      
+#    }
+#    
+#  }
