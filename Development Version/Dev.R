@@ -13,7 +13,7 @@ rm(list = ls())
 
 # Split ChromaTOF-exported MSP into list of individual MSP spectra
 
-# Terms: 'sample' is a single MSP file generated from the analysis of a sample, The script will process all sample MSP files in the folder.  input_sample_list is a vector of paths to the input MSP spectra files.
+# Terms: 'sample' is a single MSP file generated from the analysis of a sample. Process all sample MSP files in the folder, where input_sample_list is a vector of paths to the input MSP spectra files.
 input_sample_list <- list.files("Step 1 Input Spectra", full.names = TRUE) 
 
 # for (i in 1:length(input_sample_list)) { # Increment through path list
@@ -26,7 +26,7 @@ working_sample_spectra <- readLines(working_sample) # Read file in to character 
 
 cat('Processing ', tmp_name, '... \n', sep = '')
 
-# Make a vector (spectrum_factor) that defines the separate spectra within the file. spectrum_factor is defined by spectrum_count, which iterates by + 1 if it encounters a newline that defines the next spectrum. 
+# Make a vector (spectrum_factor) that defines the separate spectra within the MSP file, where spectrum_factor is defined by spectrum_count, which iterates by + 1 if it encounters a newline that defines the next spectrum. 
 spectrum_factor <- vector(mode = "integer", length = length(working_sample_spectra))
 spectrum_count <- 1
 for(i in 1: length(working_sample_spectra)) {
@@ -44,7 +44,7 @@ spectrum_list <- split(working_sample_spectra, f = spectrum_factor)
 # TODO If end of file contains more than one newline, ignore
 # REPORT number of spectra in file
 
-# Preallocate the data frame size (N) with an estimate of the total number of m/z peaks in the file: find the number of rows in each spectrum, exclude 3 rows per spectrum for the headers and blank line, find the sum total, and multiply by 10 (the max number of allowed m/s peaks per row). Create the empty data frame (df).
+# Preallocate the data frame size (N) with an estimate of the total number of m/z peaks in the file: find the number of rows in each spectrum, exclude 3 rows per spectrum for the headers and blank line, find the sum total, and multiply by 10 (the max number of allowed m/z peaks per row). Create the empty data frame (df).
 N <- sum(lengths(spectrum_list) - 3) * 10 
 df <- data.frame(peak_number = rep(NA, N), subnominal_mz = rep(NA, N), nominal_mz = rep(NA, N), intensity = rep(NA, N))
 
