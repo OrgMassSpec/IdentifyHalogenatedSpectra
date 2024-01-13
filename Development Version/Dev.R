@@ -1,4 +1,4 @@
-# Dev version for MSP spectrum
+# Development version of Identify Halogenated Spectra
 
 rm(list = ls())
 # library(OrgMassSpecR) # The OrgMassSpecR version must be >= 0.5-1.
@@ -11,7 +11,7 @@ rm(list = ls())
 # dir.create("Step 4 MSP to CSV", showWarnings = FALSE)
 # cat("OK\n")
 
-# Split ChromaTOF-exported MSP into list of individual MSP spectra
+### Split ChromaTOF-exported MSP file into list of individual spectra
 
 # Terms: 'sample' is a single MSP file generated from the analysis of a sample. Process all sample MSP files in the folder, where input_sample_list is a vector of paths to the input MSP spectra files.
 input_sample_list <- list.files("Step 1 Input Spectra", full.names = TRUE) 
@@ -49,9 +49,7 @@ N <- sum(lengths(spectrum_list) - 3) * 10
 df <- data.frame(peak_number = rep(NA, N), subnominal_mz = rep(NA, N), nominal_mz = rep(NA, N), intensity = rep(NA, N))
 
 # Track data frame row number (row_num) and iterate through the individual spectra (spectrum_list_i) from spectrum_list. Split out peaks (m/z and intensity pairs) into list subelements (x). Remove `character(0)` elements from list that results from newlines.
-
 n <- length(spectrum_list)
-
 row_num <- 1 
 cat('Total number of spectra:', n, '\n')
 cat('Reading in spectrum:\n')
@@ -69,15 +67,15 @@ for(spectrum_list_i in 1:length(spectrum_list)) {
       mz_int <- strsplit(x[[i]][j], split = "[[:space:]]")[[1]] 
       mz_int <- mz_int[mz_int != ""] 
       nominal_mz <- round(as.numeric(mz_int[1]))
-
       a <- list(as.numeric(spectrum_list_i), as.numeric(mz_int)[1], as.numeric(nominal_mz), as.numeric(mz_int)[2]) 
-
       df[row_num, ] <- a
       row_num <- row_num + 1
 
     }
   }
 }
+
+### Check for duplicated nominal m/z values and combine
 
 # Remove unused rows (NA). For the remaining data, sum the intensities of duplicated nominal_mz values within the spectrum. The subnominal_mz for the the m/z peak with the larger original intensity is kept, but with the original intensity replaced by the summed intensity. The smaller intensity m/z peak is deleted. Columns are then reordered.
 df <- na.omit(df) 
@@ -93,8 +91,9 @@ names(df_read)[names(df_read) == 'intensity.y'] <- 'intensity'
 # REPORT status to separate output file and terminal. 
 # REPORT number of dulicated nominal m/z peaks per spectrum
 # REPORT number of m/z peaks under intensity threshold
-
 # TODO Double check with more complex examples
+
+### Remove noise spectra
 
 rm(list = setdiff(ls(), "df_read"))
 cat(' -> Completed...\n')
@@ -111,6 +110,8 @@ for(i in unique(df_read$peak_number)) {
 }
 cat('Number of noise spectra removed:', n_removed, '\n')
 cat('New total number of spectra:', length(unique(df_read$peak_number)), '\n')
+
+### Make data frame for input into filters
 
 # Add in placeholders for all nominal m/z values
 # Construct df with all nominal mz values and merge. Find min and max values for each peak_number and build df using rep().  
@@ -131,6 +132,9 @@ rownames(df_read) <- NULL
 cat('Memory used by full nominal m/z data frame:', format(object.size(df), units = 'Mb'), '\n')
 
 #write.csv(df_read, file = 'Output.txt')
+
+### Halogenation filter 1
+# TODO Cite paper
 rm(list = setdiff(ls(), "df"))
 
 # Normalize peak intensity to percentage of max peak and only examine m/z > 100 amu.
@@ -192,39 +196,40 @@ rm(list = setdiff(ls(), "df"))
 cat('Number of halogenated spectra per filter 1:', length(unique(df$peak_number[df$filter_1 == TRUE])), '\n')
 cat('Memory used by data frame with filter 1 results:', format(object.size(df), units = 'Mb'), '\n')
 
+### Halogenation filter 2
 # TODO filter 2
 
 # Is this needed? Wouldn't similarity score be poor against a second peak in the distribution anyways? Computationally it is easier to just calculate the similarity score against all filter_1 == TRUE. 
 
-#SelectHalogenatedDistribution <- function(xFilter, x) { 
-#
-## xFilter is the full data frame and x is the results of filter 1
-#
-#
-#  # Remove miss-identified peaks within the same distribution. Sometimes another
-#  # peak within the same distribution is identified. Only the maximum peak 
-#  # within the distribution should be identified. The following code eliminates
-#  # any multiple identifications within the same distribution, although not
-#  # necessairly the maximum one. The maximum peak is identified again later when
-#  # plotting the distribution.
-#  
-#  xFilter$Diff <- c(diff(xFilter$mz), 100) # 100 is placeholder at the end
-#  xFilter <- xFilter[xFilter$Diff > 10, ] # exclude if within 10 mz units
-#  
-#  # Select the 5 most abundant distributions. Then return to the original order.
-#  if(nrow(xFilter) > 5) {
-#    
-#    xFilter <- head(xFilter[rev(order(xFilter$intensity)), ], n = 5) 
-#    xFilter <- xFilter[order(xFilter$mz), ]
-#    
-#  }
-#  
-#  # Select window of m/z around the experimental distributions and store in
-#  # distList.
-#  
-#  distList <- vector(mode = 'list')
-#
-#
+  #SelectHalogenatedDistribution <- function(xFilter, x) { 
+  #
+  ## xFilter is the full data frame and x is the results of filter 1
+  #
+  #
+  #  # Remove miss-identified peaks within the same distribution. Sometimes another
+  #  # peak within the same distribution is identified. Only the maximum peak 
+  #  # within the distribution should be identified. The following code eliminates
+  #  # any multiple identifications within the same distribution, although not
+  #  # necessairly the maximum one. The maximum peak is identified again later when
+  #  # plotting the distribution.
+  #  
+  #  xFilter$Diff <- c(diff(xFilter$mz), 100) # 100 is placeholder at the end
+  #  xFilter <- xFilter[xFilter$Diff > 10, ] # exclude if within 10 mz units
+  #  
+  #  # Select the 5 most abundant distributions. Then return to the original order.
+  #  if(nrow(xFilter) > 5) {
+  #    
+  #    xFilter <- head(xFilter[rev(order(xFilter$intensity)), ], n = 5) 
+  #    xFilter <- xFilter[order(xFilter$mz), ]
+  #    
+  #  }
+  #  
+  #  # Select window of m/z around the experimental distributions and store in
+  #  # distList.
+  #  
+  #  distList <- vector(mode = 'list')
+  #
+  #
 ## NEED THIS
 #  # Slices -10 to + 10 around the filter_1 = true result? This then goes to the match against the theoretical distributions.
 #  for (i in 1:nrow(xFilter)) {
@@ -328,3 +333,5 @@ cat('Memory used by data frame with filter 1 results:', format(object.size(df), 
 #    }
 #    
 #  }
+
+# Print similarity score in results data frame along with TRUE FALSE result.
