@@ -475,20 +475,24 @@ theoretical_distributions <- structure(list(mz = c(234, 235.01, 236, 237.01, 238
     
 # Select experimental distribution for comparison 
 
-df_Filter1_TRUE <- df[df$filter_1 == TRUE,]
+df_Filter1 <- df[df$filter_1 == TRUE,]
 
-for(i in df_Filter1_TRUE$spectrum_number) {
+# for(i in df_Filter1_TRUE$spectrum_number) {
+
+  i = 1 #for development
   # Extract full experimental spectrum
-  spectrum <- df[df$spectrum_number == df_Filter1_TRUE$spectrum_number[i], ]
+  spectrum <- df[df$spectrum_number == df_Filter1$spectrum_number[i], ]
 
-  for(i in df_Filter1_TRUE$nominal_mz) {
+  for(i in df_Filter1$nominal_mz) {
     # Calculate nominal m/z range around Filter 1 = TRUE
-    mz_range <- seq(from = df_Filter1_TRUE$nominal_mz[i] - 10, to = df_Filter1_TRUE$nominal_mz[i] + 10, by = 1)
     # Extract experimental distribution
-    # TODO build data frame with full set of nominal_mz and merge with experimental. Test case where experimental distribution does not have full range.  
-    # Fill in empty intensity values with zero (if at start or end of spectrum)
+    mz_range <- data.frame(nominal_mz = seq(from = df_Filter1$nominal_mz[i] - 10, 
+      to = df_Filter1$nominal_mz[i] + 10, by = 1))    
+    expt_isotopic_distribution <- merge(mz_range, spectrum, by = 'nominal_mz', all.x = TRUE, all.y = FALSE)
+    expt_isotopic_distribution$intensity[is.na(expt_isotopic_distribution$intensity)] <- 0
+    # TODO Test case where experimental distribution does not have full range.  
   }
-}
+#}
 
 ## Implement this.
 #SimilarityScoreMatch <- function(xDist, tDistList, tDistAll) {
