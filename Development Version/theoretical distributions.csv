@@ -1,4 +1,4 @@
-mz,intensity,percent,DistributionLabel,PeakNumber
+theoretical_mz,theoretical_intensity,theoretical_percent_intensity,distribution_name,peak_number
 NA,0,0,Br1,-9
 NA,0,0,Br1,-8
 NA,0,0,Br1,-7
