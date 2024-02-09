@@ -1,4 +1,5 @@
 ### Development version of Identify Halogenated Spectra
+# source('Dev Version.R', echo = FALSE)
 
 # Put the ChromaTOF MSP files (renamed with .csv extensions) in a folder named 'Input Spectra'. The script will run on every file in that folder.
 
@@ -10,7 +11,7 @@ rm(list = ls())
 # to_remove <- c('theoretical_intensity', 'peak_number')
 # x <- x[, !(names(x) %in% to_remove), drop = F]
 # dput(x)
-tds <- # theoretical distributions
+t_distributions <- # theoretical distributions
 structure(list(theoretical_mz = c(NA, NA, NA, NA, NA, NA, NA, 
 NA, NA, NA, 234, 235.01, 236, 237.01, 238.01, NA, NA, NA, NA,
 NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 311.91, 312.92, 
@@ -424,7 +425,7 @@ names(df_read)[names(df_read) == 'intensity.y'] <- 'intensity'
 
 ### Remove noise spectra
 
-rm(list = setdiff(ls(), "df_read"))
+rm(list = setdiff(ls(), c("df_read", "t_distributions")))
 cat(' -> Completed...\n')
 cat('Memory used to read data frame:', format(object.size(df_read), units = 'Mb'), '\n')
 
@@ -464,7 +465,7 @@ cat('Memory used by full nominal m/z data frame:', format(object.size(df), units
 
 ### Halogenation filter 1
 # TODO Cite paper
-rm(list = setdiff(ls(), "df"))
+rm(list = setdiff(ls(), c("df", "t_distributions")))
 
 # Normalize peak intensity to percentage of max peak and only examine m/z > 100 amu.
 cat('Applying filter 1 to spectrum (original ID# is printed):\n')
@@ -516,64 +517,69 @@ for(i in unique(df$spectrum_number)) {
 
 }
 
-# Dataframe df holds the results. Remove and rename columns.
-df <- merge(df, y, by = c('spectrum_number', 'nominal_mz'))
-df <- subset(df, select = -filter_1.x)
-names(df)[names(df) == 'filter_1.y'] <- 'filter_1'
-cat(' -> Completed...\n') 
-rm(list = setdiff(ls(), "df"))
+
+df <- merge(df, y, by = c('spectrum_number', 'nominal_mz')) # df holds the results of filter 1, select columns
+df <- subset(df, select = -filter_1.x) 
+names(df)[names(df) == 'filter_1.y'] <- 'filter_1' # rename column from merge
 df <- df[order(df$spectrum_number, df$nominal_mz), ]
+cat(' -> Completed...\n') 
+rm(list = setdiff(ls(), c("df", "t_distributions")))
 cat('Total number of halogenated spectra per filter 1:', length(unique(df$spectrum_number[df$filter_1 == TRUE])), 'out of', length(unique(df$spectrum_number)), '\n')
 cat('Memory used by data frame with filter 1 results:', format(object.size(df), units = 'Mb'), '\n')
 
 ### Halogenation filter 2
 
-# Select experimental distribution for comparison 
+# Iterate through the passing filter 1 results. For each, determine the m/z range for selection and extract the experimental distribution. Convert intensities to the percent intensity within the distribution. This conversion also changes intensity values that are NA to percent_intensity values that are 0.
 
-f1p <- df[df$filter_1 == TRUE,] # filter 1 passing
-dns <- unique(tds$distribution_name) # distribution names
+filter_1 <- df[df$filter_1 == TRUE,] # passing rows of filter 1
+distribution_names <- unique(t_distributions$distribution_name) # theoretical distribution names
+filter_2 <- data.frame(NULL) # to collect filter 2 results
+monoisotopic_peaks <- data.frame(NULL) # to collect monoisotopic peaks
 
-f2r <- data.frame(NULL) # filter 2 results
+cat('Applying filter 2 to spectrum (count, original ID#):\n')
+m <- nrow(filter_1)
 
-for(i in 1:length(f1p$spectrum_number)) {
-  # Calculate nominal m/z range around Filter 1 = TRUE 
-  mz_range <- data.frame(nominal_mz = seq(from = f1p$nominal_mz[i] - 10, 
-    to = f1p$nominal_mz[i] + 12, by = 1))    
-  # Extract full experimental spectrum
-  spectrum <- df[df$spectrum_number == f1p$spectrum_number[i] & df$nominal_mz %in% mz_range$nominal_mz, ]
+for(i in 1:nrow(filter_1)) {
 
-  for(i in 1:length(f1p$nominal_mz)) {
-    #and extract the experimental distribution. Fill in all missing nominal m/z values. 
-    tmp_experimental <- merge(mz_range, spectrum, by = 'nominal_mz', 
-      all.x = TRUE, all.y = FALSE)
-    # tmp_experimental$intensity[is.na(tmp_experimental$intensity)] <- 0 # TODO is this necessary?
-    # TODO Test the case where the extracted experimental distribution is at the very beginning or end of the mass spectrum and does not have full range. Input a made up spectrum that test this and other edge cases.   
+    n <- filter_1$spectrum_number[i]
+    cat(sprintf('\r'), i, " of ", m, ", ", n, sep = '')
 
-    # Scale the extracted experimental distribution.
-    tmp_experimental$percent_intensity <- with(tmp_experimental,
-      intensity / max(intensity) * 100)
+    mz_range <- data.frame(spectrum_number = n, nominal_mz = seq(from = filter_1$nominal_mz[i] - 10, to = filter_1$nominal_mz[i] + 13, by = 1)) # set up mz range
+    e_distribution <- merge(mz_range, df, by = c('spectrum_number', 'nominal_mz'), all.x = TRUE, all.y = FALSE) # fill in missing rows in the experimental distribution
+    e_distribution$intensity[is.na(e_distribution$intensity)] <- 0
 
-    # Calculate a similarity score for the experimental distribution against every theoretical distribution. The experimental distribution tmp_experimental and the theoretical distribution tmp_theoretical both have 24 nominal m/z values with 10 below the maximun peak and 13 above the maximum peak. Nominal m/z values without experimental intensities are remove before the similarity score is calculated.
+    # Calculate a similarity score for the experimental distribution against every theoretical distribution. Both have 24 nominal m/z values with 10 below the maximum intensity peak and 13 above.
 
-    # TODO Set up data frame (b) to store results. 
-    df_b <- data.frame() # TODO complete
+    match_results <- data.frame(NULL)
 
     for(j in 1:length(distribution_names)) {
-      tmp_theoretical <- theoretical_distributions
-        [theoretical_distributions$distribution_name = distribution_names[j], ]
-      tmp <- cbind(tmp_experimental, tmp_theoretical)
-      tmp <- tmp[!is.na(tmp$nominal_mz), ]
 
-      # TODO check which is u and which is v in the OrgMassSpecR help file.  
+      t_distribution <- t_distributions[t_distributions$distribution_name == distribution_names[j], ] # theoretical distribution
+      match_df <- cbind(e_distribution, t_distribution) # bound distributions
+      match_df <- match_df[!is.na(match_df$theoretical_mz), ] # exclude m/z range outside of theoretical distribution
+      match_df$percent_intensity <- with(match_df, intensity / max(intensity) * 100) # scale the experimental distribution intensities
+      u <- match_df$percent_intensity # experimental intensity vector
+      v <- match_df$theoretical_percent_intensity # theoretical intensity vector
       similarity_score <- as.vector((u %*% v) / (sqrt(sum(u^2)) * sqrt(sum(v^2))))
-      # TODO Store spectrum_number, nominal_mz of f1p$nominal_mz[i], and similarity score in data frame (b). This data frame stores all similarity scores.
-      rbind()
+      match_df$similarity_score <- similarity_score # match results for a single theoretical distribution
+      match_results <- rbind(match_results, match_df) # collect all similarity score results
+
     }
 
-    # TODO select the best match in data frame (b) and store in data frame (a) 
-  }
+    best_match <- match_results[match_results$similarity_score == max(match_results$similarity_score) & match_results$percent_intensity == 100, ] # select the best match
+    filter_2 <- rbind(filter_2, best_match) # collect the best matches in the sample
+    monoisotopic_peak <- t_distribution[1, ] # first m/z is theoretically the monoisotopic peak
+    monoisotopic_peaks <- rbind(monoisotopic_peaks, monoisotopic_peak)
 }
 
-# TODO merge results data frame (a) with df and apply threshold for passing filter 2
+filter_2 <- filter_2[c('spectrum_number', 'nominal_mz', 'percent_intensity', 'distribution_name', 'similarity_score')]
+monoisotopic_peaks <- monoisotopic_peaks[c('spectrum_number', 'nominal_mz')]
+monoisotopic_peaks$monoisotopic_peak <- TRUE 
+cat(' -> Completed...\n') 
 
+df <- merge(df, filter_2, by = c('spectrum_number', 'nominal_mz'), all.x = TRUE, all.y = FALSE)
+df <- merge(df, monoisotopic_peaks, by = c('spectrum_number', 'nominal_mz'), all.x = TRUE, all.y = FALSE)
+# Apply similarity score threshold. Need to assess what this should be. 
+cat('Total number of halogenated spectra passing filter 2:', nrow(filter_2), '\n') # TODO apply threshold, currently the same as for filter 1
+cat('Memory used by data frame with filter 1 and 2 results:', format(object.size(df), units = 'Mb'), '\n')
 
