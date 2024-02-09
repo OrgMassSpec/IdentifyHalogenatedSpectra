@@ -562,24 +562,20 @@ for(i in 1:nrow(filter_1)) {
       v <- match_df$theoretical_percent_intensity # theoretical intensity vector
       similarity_score <- as.vector((u %*% v) / (sqrt(sum(u^2)) * sqrt(sum(v^2))))
       match_df$similarity_score <- similarity_score # match results for a single theoretical distribution
+      match_df$monoisotopic_peak <- c(TRUE, rep(FALSE, nrow(match_df) - 1)) # label the monoisotopic peak
       match_results <- rbind(match_results, match_df) # collect all similarity score results
 
     }
 
-    best_match <- match_results[match_results$similarity_score == max(match_results$similarity_score) & match_results$percent_intensity == 100, ] # select the best match
-    filter_2 <- rbind(filter_2, best_match) # collect the best matches in the sample
-    monoisotopic_peak <- t_distribution[1, ] # first m/z is theoretically the monoisotopic peak
-    monoisotopic_peaks <- rbind(monoisotopic_peaks, monoisotopic_peak)
+    best_match <- match_results[match_results$similarity_score == max(match_results$similarity_score), ] # select the best match
+    filter_2 <- rbind(filter_2, best_match) # collect the best match records in the sample
+
 }
 
-filter_2 <- filter_2[c('spectrum_number', 'nominal_mz', 'percent_intensity', 'distribution_name', 'similarity_score')]
-monoisotopic_peaks <- monoisotopic_peaks[c('spectrum_number', 'nominal_mz')]
-monoisotopic_peaks$monoisotopic_peak <- TRUE 
+filter_2 <- filter_2[c('spectrum_number', 'nominal_mz', 'percent_intensity', 'theoretical_percent_intensity', 'distribution_name', 'similarity_score', 'monoisotopic_peak')]
 cat(' -> Completed...\n') 
 
 df <- merge(df, filter_2, by = c('spectrum_number', 'nominal_mz'), all.x = TRUE, all.y = FALSE)
-df <- merge(df, monoisotopic_peaks, by = c('spectrum_number', 'nominal_mz'), all.x = TRUE, all.y = FALSE)
-# Apply similarity score threshold. Need to assess what this should be. 
-cat('Total number of halogenated spectra passing filter 2:', nrow(filter_2), '\n') # TODO apply threshold, currently the same as for filter 1
+cat('Total number of halogenated spectra passing filter 2:', length(unique(filter_2$spectrum_number)), '\n') # TODO apply threshold, currently the same as for filter 1
 cat('Memory used by data frame with filter 1 and 2 results:', format(object.size(df), units = 'Mb'), '\n')
 
